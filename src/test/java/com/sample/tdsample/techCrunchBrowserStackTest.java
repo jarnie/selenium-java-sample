@@ -1,6 +1,5 @@
 package com.sample.tdsample;
 
-import com.saucelabs.junit.SauceOnDemandTestWatcher;
 import junit.framework.AssertionFailedError;
 import org.junit.*;
 import org.junit.rules.TestName;
@@ -14,16 +13,13 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import java.util.concurrent.TimeUnit;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class techCrunchSauceTest extends AbstractTest{
+public class techCrunchBrowserStackTest extends AbstractTest{
 
     static String currentTestState = "failed";
 
-    public techCrunchSauceTest() {
-        super("techCrunchSauceTest");
+    public techCrunchBrowserStackTest() {
+        super("techCrunchBrowserStackTest");
     }
-
-    public @Rule
-    SauceOnDemandTestWatcher resultReportingTestWatcher = new SauceOnDemandTestWatcher(this, authentication);
 
     @Rule
     public TestName name = new TestName() {
@@ -36,16 +32,21 @@ public class techCrunchSauceTest extends AbstractTest{
     public void setUpTestNew() throws Exception {
         log("new test");
         // set window size
-        setTestNAmeAndStatus(name.getMethodName().toString(),currentTestState);
         setupDriver();
         modifyWindowSize();
     }
 
     @Override
     @After
-    public void tearDownTest() {
-        log("test done");
-        setTestNAmeAndStatus(name.getMethodName().toString(),currentTestState);
+    public void tearDownTest() throws Exception{
+        log("tearDownTest");
+        if (testPlatform.equals("browserstack"))
+        {
+            setTestNAmeAndStatus(name.getMethodName().toString(),currentTestState);
+            uploadResultsToBrowserStack(BSTestName,BSTestStatus);
+        }
+        else
+        {}
         if (driver != null) driver.quit();
     }
 
@@ -66,7 +67,7 @@ public class techCrunchSauceTest extends AbstractTest{
     @Test
     public void b_goToStartupsTest() throws Exception {
         try {
-            //openPage();
+            openPage();
             goToStartups();
             currentTestState = "passed";
         } catch (Exception | AssertionFailedError | ComparisonFailure e) {
@@ -81,7 +82,7 @@ public class techCrunchSauceTest extends AbstractTest{
     @Test
     public void c_goToAppsTest() throws Exception {
         try {
-            //openPage();
+            openPage();
             goToApps();
             currentTestState = "passed";
         } catch (Exception | AssertionFailedError | ComparisonFailure e) {
@@ -96,7 +97,7 @@ public class techCrunchSauceTest extends AbstractTest{
     @Test
     public void d_useSearchTest() throws Exception {
         try {
-            //openPage();
+            openPage();
             useSearch();
             currentTestState = "passed";
         } catch (Exception | AssertionFailedError | ComparisonFailure e) {
@@ -111,7 +112,7 @@ public class techCrunchSauceTest extends AbstractTest{
     @Test
     public void e_failTest() throws Exception {
         try {
-            //openPage();
+            openPage();
             failureTestCase();
             currentTestState = "passed";
         } catch (Exception | AssertionFailedError | ComparisonFailure e) {
@@ -130,7 +131,18 @@ public class techCrunchSauceTest extends AbstractTest{
         log("Start open tech crunch page test");
         driver.get("https://techcrunch.com");
         log("page opened");
-        driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        //driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+
+        try
+        {
+            WebDriverWait wait = new WebDriverWait(driver,10);
+            wait.until(ExpectedConditions.visibilityOf(driver.findElement(By.cssSelector("input[type='submit']"))));
+            driver.findElement(By.cssSelector("input[type='submit']")).click();
+        }
+        catch (Exception e)
+        {
+
+        }
 
         // check if window is small and hamburger menu is visible instead of side menu
         checkMenuElement();
@@ -148,9 +160,7 @@ public class techCrunchSauceTest extends AbstractTest{
         boolean startupsFound = false;
 
         log("Start go to startup test");
-        driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-
-        driver.get("https://techcrunch.com");
+        //driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
 
         log("get page url");
         currentUrl = driver.getCurrentUrl();
@@ -182,9 +192,7 @@ public class techCrunchSauceTest extends AbstractTest{
         boolean appsFound = false;
 
         log("Start go to apps test");
-        driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-
-        driver.get("https://techcrunch.com");
+        //driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
 
         log("get page url");
         currentUrl = driver.getCurrentUrl();
@@ -225,9 +233,7 @@ public class techCrunchSauceTest extends AbstractTest{
         WebElement searchResult;
 
         log("Start use search test");
-        driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-
-        driver.get("https://techcrunch.com");
+        //driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
 
         log("get page url");
         currentUrl = driver.getCurrentUrl();
@@ -269,9 +275,7 @@ public class techCrunchSauceTest extends AbstractTest{
         String currentUrl;
 
         log("Start failure test");
-        driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-
-        driver.get("https://techcrunch.com");
+        //driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
 
         log("get page url");
         currentUrl = driver.getCurrentUrl();

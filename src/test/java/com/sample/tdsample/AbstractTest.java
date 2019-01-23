@@ -2,6 +2,9 @@ package com.sample.tdsample;
 
 import com.saucelabs.common.SauceOnDemandAuthentication;
 import com.saucelabs.common.SauceOnDemandSessionIdProvider;
+import jdk.nashorn.internal.runtime.ECMAException;
+import okhttp3.*;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -13,6 +16,7 @@ import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.remote.SessionId;
 
 import java.io.File;
 import java.net.URL;
@@ -28,6 +32,9 @@ public abstract class AbstractTest extends AbstractSeleniumTest implements Sauce
     protected static String sessionId;
     protected static boolean hamburgerMenuVisible = false;
 
+    protected static String BSTestName = "a_openPageTest";
+    protected static String BSTestStatus;
+
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMddHHmm");
 
     private final String testName;
@@ -41,9 +48,7 @@ public abstract class AbstractTest extends AbstractSeleniumTest implements Sauce
     public static SauceOnDemandAuthentication authentication = new SauceOnDemandAuthentication(
             System.getenv("SAUCE_USER"), System.getenv("SAUCE_KEY"));
 
-    @BeforeClass
-    public static void setUp() throws Exception {
-
+    public static void setupDriver() throws Exception {
         boolean canRun = false;
         if (!testPlatform.isEmpty() && !testPlatform.equals(""))
         {
@@ -70,8 +75,19 @@ public abstract class AbstractTest extends AbstractSeleniumTest implements Sauce
                     }
                     canRun = true;
                     break;
-                case "bitbar":  driver = getChromeSauceDriver();
+                case "browserstack":
+                    if (browserToRunTest.equals("firefox"))
+                    {
+                        driver = getFirefoxBrowserStackDriver();
+                    }
+                    if (browserToRunTest.equals("chrome"))
+                    {
+                        driver = getChromeBrowserStackDriver();
+                    }
                     canRun = true;
+                    break;
+                case "bitbar":  driver = getLocalFirefoxDriver();
+                    canRun = false;
                     break;
                 default: canRun = false;
                     break;
@@ -83,15 +99,23 @@ public abstract class AbstractTest extends AbstractSeleniumTest implements Sauce
         }
     }
 
+    //@BeforeClass
+    public static void setUp() throws Exception {
+
+        setupDriver();
+    }
+
     @Before
     public void setUpTest() throws Exception{
         log("Setting implicit wait to " + defaultWaitTime + " seconds");
-        driver.manage().timeouts().implicitlyWait(defaultWaitTime, TimeUnit.SECONDS);
+        //driver.manage().timeouts().implicitlyWait(defaultWaitTime, TimeUnit.SECONDS);
+        //setupDriver();
     }
 
     @After
     public void tearDownTest() throws Exception{
         log("tearDownTest");
+        if (driver != null) driver.quit();
     }
 
     @AfterClass
@@ -175,13 +199,19 @@ public abstract class AbstractTest extends AbstractSeleniumTest implements Sauce
                     options.setCapability("version", "71.0");
                     options.setCapability("chromedriverVersion", "2.43");
                     options.setCapability("screenResolution", "1920x1440");
-                    options.setCapability("name", "TechCrunch high window size test");
+                    options.setCapability("name", BSTestName);
                     break;
                 case "linux":
                     options.setCapability("platform", "Linux");
                     options.setCapability("version", "48.0");
                     options.setCapability("screenResolution", "1024x768");
-                    options.setCapability("name", "TechCrunch low window size test");
+                    options.setCapability("name", BSTestName);
+                    break;
+                case "windows":
+                    options.setCapability("platform", "Windows 10");
+                    options.setCapability("version", "71.0");
+                    options.setCapability("screenResolution", "1920x1080");
+                    options.setCapability("name", BSTestName);
                     break;
                 default:
                     break;
@@ -217,11 +247,19 @@ public abstract class AbstractTest extends AbstractSeleniumTest implements Sauce
                     options.setCapability("platform", "macOS 10.13");
                     options.setCapability("version", "64.0");
                     options.setCapability("screenResolution", "1920x1440");
+                    options.setCapability("name", BSTestName);
                     break;
                 case "linux":
                     options.setCapability("platform", "Linux");
                     options.setCapability("version", "45.0");
                     options.setCapability("screenResolution", "1024x768");
+                    options.setCapability("name", BSTestName);
+                    break;
+                case "windows":
+                    options.setCapability("platform", "Windows 10");
+                    options.setCapability("version", "64.0");
+                    options.setCapability("screenResolution", "1920x1080");
+                    options.setCapability("name", BSTestName);
                     break;
                 default:
                     break;
@@ -236,6 +274,102 @@ public abstract class AbstractTest extends AbstractSeleniumTest implements Sauce
         WebDriver driver = new RemoteWebDriver(new URL("http://" + authentication.getUsername() + ":" + authentication.getAccessKey() + "@ondemand.saucelabs.com:80/wd/hub"), capabilities);
         sessionId = ((RemoteWebDriver)driver).getSessionId().toString();
         driver.manage().timeouts().implicitlyWait(defaultWaitTime, TimeUnit.SECONDS);
+        return driver;
+    }
+
+    public static WebDriver getFirefoxBrowserStackDriver() throws Exception {
+
+        DesiredCapabilities capabilities = DesiredCapabilities.firefox();
+        FirefoxOptions options = new FirefoxOptions(capabilities);
+
+        screenshotsFolder = System.getProperty("user.dir") + "/screenshots/";
+
+        File dir = new File(screenshotsFolder);
+        dir.mkdirs();
+
+        if (!testPlatformOSType.isEmpty() && !testPlatformOSType.equals(""))
+        {
+            switch (testPlatformOSType) {
+                case "mac":
+                    options.setCapability("os", "OS X");
+                    options.setCapability("os_version", "High Sierra");
+                    options.setCapability("browser", "Firefox");
+                    options.setCapability("browser_version", "62.0");
+                    options.setCapability("resolution", "1920x1080");
+                    options.setCapability("browserstack.local", "false");
+                    options.setCapability("browserstack.geckodriver", "0.22.0");
+                    options.setCapability("browserstack.selenium_version", "3.14.0");
+                    break;
+                case "windows":
+                    options.setCapability("os", "Windows");
+                    options.setCapability("os_version", "10");
+                    options.setCapability("browser", "Firefox");
+                    options.setCapability("browser_version", "62.0");
+                    options.setCapability("resolution", "1920x1080");
+                    options.setCapability("browserstack.local", "false");
+                    options.setCapability("browserstack.geckodriver", "0.22.0");
+                    options.setCapability("browserstack.selenium_version", "3.14.0");
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        capabilities.setCapability(FirefoxOptions.FIREFOX_OPTIONS,options);
+
+        System.out.println("Creating Selenium session, this may take couple minutes..");
+        WebDriver driver = new RemoteWebDriver(new URL("http://" + System.getenv("BROW_STACK_USER") + ":" + System.getenv("BROW_STACK_KEY") + "@hub.browserstack.com/wd/hub"), capabilities);
+        sessionId = ((RemoteWebDriver)driver).getSessionId().toString();
+        //driver.manage().timeouts().implicitlyWait(defaultWaitTime, TimeUnit.SECONDS);
+        return driver;
+    }
+
+    public static WebDriver getChromeBrowserStackDriver() throws Exception {
+
+        ChromeOptions options = new ChromeOptions();
+
+        screenshotsFolder = System.getProperty("user.dir") + "/screenshots/";
+
+        File dir = new File(screenshotsFolder);
+        dir.mkdirs();
+
+        if (!testPlatformOSType.isEmpty() && !testPlatformOSType.equals(""))
+        {
+            switch (testPlatformOSType) {
+                case "mac":
+                    options.setCapability("os", "OS X");
+                    options.setCapability("os_version", "High Sierra");
+                    options.setCapability("browser", "Chrome");
+                    options.setCapability("browser_version", "71.0");
+                    options.setCapability("resolution", "1920x1080");
+                    options.setCapability("browserstack.local", "false");
+                    options.setCapability("browserstack.chrome.driver", "2.44");
+                    options.setCapability("browserstack.selenium_version", "3.5.2");
+                    break;
+                case "windows":
+                    options.setCapability("os", "Windows");
+                    options.setCapability("os_version", "10");
+                    options.setCapability("browser", "Chrome");
+                    options.setCapability("browser_version", "71.0");
+                    options.setCapability("resolution", "1920x1080");
+                    options.setCapability("browserstack.local", "false");
+                    options.setCapability("browserstack.chrome.driver", "2.44");
+                    options.setCapability("browserstack.selenium_version", "3.5.2");
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        options.setCapability("browserName", "chrome");
+
+        DesiredCapabilities capabilities = DesiredCapabilities.chrome();
+        capabilities.setCapability(ChromeOptions.CAPABILITY, options);
+
+        System.out.println("Creating Selenium session, this may take couple minutes..");
+        WebDriver driver = new RemoteWebDriver(new URL("http://" + System.getenv("BROW_STACK_USER") + ":" + System.getenv("BROW_STACK_KEY") + "@hub.browserstack.com/wd/hub"), capabilities);
+        sessionId = ((RemoteWebDriver)driver).getSessionId().toString();
+        //driver.manage().timeouts().implicitlyWait(defaultWaitTime, TimeUnit.SECONDS);
         return driver;
     }
 
@@ -255,7 +389,7 @@ public abstract class AbstractTest extends AbstractSeleniumTest implements Sauce
         int startTime;
         int timer;
 
-        driver.manage().timeouts().implicitlyWait(1, TimeUnit.SECONDS);
+        //driver.manage().timeouts().implicitlyWait(1, TimeUnit.SECONDS);
 
         startTime = (int)(System.currentTimeMillis() / 1000);
         while (!proceedTest)
@@ -288,7 +422,7 @@ public abstract class AbstractTest extends AbstractSeleniumTest implements Sauce
             catch (Exception e)
             {}
         }
-        driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        //driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
     }
 
     protected void openHamburgerMenu() throws Exception {
@@ -342,5 +476,45 @@ public abstract class AbstractTest extends AbstractSeleniumTest implements Sauce
         int y = Integer.parseInt(browserWindowSizeY);
         log("set window size: " +x + "x"+y);
         driver.manage().window().setSize(new Dimension(x,y));
+    }
+
+    protected void setTestNAmeAndStatus(String name, String status)
+    {
+        BSTestName = name;
+        BSTestStatus = status;
+    }
+
+    protected void uploadResultsToBrowserStack(String test, String testStatus) throws Exception
+    {
+        String retrunApiResponse = "";
+
+        HttpUrl.Builder urlBuilder = HttpUrl.parse("https://api.browserstack.com/automate/sessions/" + sessionId + ".json").newBuilder();
+        String url = urlBuilder.build().toString();
+        String credential = Credentials.basic(System.getenv("BROW_STACK_USER"), System.getenv("BROW_STACK_KEY"));
+
+        JSONObject postData = new JSONObject();
+        postData.put("name",test);
+        postData.put("status",testStatus);
+
+        MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+        RequestBody body = RequestBody.create(JSON, postData.toString());
+
+        OkHttpClient client = new OkHttpClient();
+
+        Request request = new Request.Builder()
+                .url(url)
+                .put(body)
+                .addHeader("Authorization", credential)
+                .build();
+
+        try (Response response = client.newCall(request).execute())
+        {
+            retrunApiResponse = response.body().string();
+            log("API_POST-" +retrunApiResponse);
+        }
+        catch (Exception e)
+        {
+            throw new Exception("api connection failed-"+e);
+        }
     }
 }

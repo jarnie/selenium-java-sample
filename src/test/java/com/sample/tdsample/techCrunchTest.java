@@ -32,14 +32,9 @@ public class techCrunchTest extends AbstractTest{
     @Before
     public void setUpTestNew() throws Exception {
         log("new test");
+        setupDriver();
         // set window size
         modifyWindowSize();
-    }
-
-    @Override
-    @After
-    public void tearDownTest() {
-        log("test done");
     }
 
     @Test
@@ -57,6 +52,7 @@ public class techCrunchTest extends AbstractTest{
     @Test
     public void b_goToStartupsTest() throws Exception {
         try {
+            openPage();
             goToStartups();
         } catch (Exception e) {
             log(""+e);
@@ -69,6 +65,7 @@ public class techCrunchTest extends AbstractTest{
     @Test
     public void c_goToAppsTest() throws Exception {
         try {
+            openPage();
             goToApps();
         } catch (Exception e) {
             log(""+e);
@@ -81,6 +78,7 @@ public class techCrunchTest extends AbstractTest{
     @Test
     public void d_useSearchTest() throws Exception {
         try {
+            openPage();
             useSearch();
         } catch (Exception e) {
             log(""+e);
@@ -93,6 +91,7 @@ public class techCrunchTest extends AbstractTest{
     @Test
     public void e_failTest() throws Exception {
         try {
+            openPage();
             failureTestCase();
         } catch (Exception e) {
             log(""+e);
